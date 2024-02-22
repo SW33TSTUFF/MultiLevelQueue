@@ -43,15 +43,19 @@ def dequeue(q):
     if isEmpty(q):
         print("Case! QUEUE IS EMPTY")
 
-    if (q.front + 1) % QUEUE_SIZE == q.rear:
-        p_return = q.queue_array[q.front]
-        q.front = -1
-        q.rear = -1
-        return p_return
 
-    p_return = q.queue_array[q.front]
-    q.front = (q.front + 1) % QUEUE_SIZE
-    return p_return
+    # elif (q.front) == q.rear:
+    #     p_return = q.queue_array[q.front]
+    #     q.front = -1
+    #     q.rear = -1
+    #     q.size -= 1
+    #     return p_return
+    
+    else:
+        p_return = q.queue_array[q.front]
+        q.front = (q.front + 1) % QUEUE_SIZE
+        q.size -= 1
+        return p_return
 
 def print_queue(q):
     print()
@@ -79,46 +83,44 @@ def input_processes():
 
 def fcfs(q0):
     global globalTime
-    quantum_slice = 4
+    quantum_slice = 2
     print("The global time is", globalTime)
     
     # Execute the loop at least once
     while (quantum_slice != 0):
-        for i in range(q0.size):
+        initial_size = q0.size
+        initial_front = q0.front
+        for i in range(initial_size):
 
-            if q0.queue_array[i].b_t != 0 and q0.queue_array[i].b_t <= quantum_slice:
-                q0.size -= 1
-                quantum_slice -= q0.queue_array[i].b_t
-                globalTime += q0.queue_array[i].b_t
-                print("Process", q0.queue_array[i].p_id, "exited at time", globalTime)
+            if (quantum_slice == 0):
+                break
+
+            if q0.queue_array[i + initial_front].b_t != 0 and q0.queue_array[i + initial_front].b_t <= quantum_slice:
+                quantum_slice -= q0.queue_array[i + initial_front].b_t
+                globalTime += q0.queue_array[i + initial_front].b_t
+                q0.queue_array[i + initial_front].b_t = 0
+                print("Process", q0.queue_array[i + initial_front].p_id, "exited at time", globalTime)
 
                 dequeue(q0)
-            elif q0.queue_array[i].b_t != 0 and q0.queue_array[i].b_t > quantum_slice:
-                q0.queue_array[i].b_t -= quantum_slice
+            elif q0.queue_array[i + initial_front].b_t != 0 and q0.queue_array[i + initial_front].b_t > quantum_slice:
+                q0.queue_array[i + initial_front].b_t -= quantum_slice
                 globalTime += quantum_slice
-        
-        # Break the loop if the condition is met
-        # if globalTime % quantum_slice == 0 or q0.size == 0:
-        #     break
-    
+                quantum_slice = 0
 
 
 def schedule():
     global globalTime
     no_queues = 2
     tick = 0
-    quantum_slice = 4
+    quantum_slice = 2
+    switch_count = 0
 
-    while globalTime < 12:
-
-        if globalTime % (no_queues * quantum_slice) == 0:
-            tick += 1
-
-        if tick % no_queues == 0: # a switch is supposed to happen
-            globalTime += quantum_slice - 1
-        
-        else:
+    while (globalTime < 25):
+        if (switch_count == 0):
             fcfs(q0)
+        elif (switch_count == 1):
+            globalTime += quantum_slice
+        switch_count = (switch_count + 1) % 2
 
 
 
