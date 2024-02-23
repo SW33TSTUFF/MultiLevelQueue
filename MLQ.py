@@ -1,4 +1,4 @@
-QUEUE_SIZE = 50
+QUEUE_SIZE = 200
 
 class Process:
     def __init__(self, p_id, prio, s_t, b_t):
@@ -17,6 +17,10 @@ class Queue:
 
 global globalTime
 globalTime = 0
+
+global emptyFlag
+emptyFlag = [0,0,0,0]
+
 
 def setQueue(q):
     q.front = -1
@@ -44,8 +48,10 @@ def dequeue(q):
         print("Case! QUEUE IS EMPTY")
     
     if (q.front == q.rear):
+        q.queue_array[q.front] = None
         q.front == -1
         q.rear == -1
+        q.size -= 1
     else:
         p_return = q.queue_array[q.front]
         q.queue_array[q.front] = None
@@ -80,6 +86,8 @@ def input_processes():
     setQueue(q1)
     q2 = Queue()
     setQueue(q2)
+    q3 = Queue()
+    setQueue(q3)
 
     for i in range(noOfProcess):
         p = Process(0, 0, 0, 0)
@@ -94,38 +102,54 @@ def input_processes():
             enqueue(q1, p)
         elif p.prio == 2:
             enqueue(q2, p)
+        elif p.prio == 3:
+            enqueue(q3, p)
 
 
-    return q0, q1, q2
+    return q0, q1, q2, q3
 
-def fcfs(q0):
+def fcfs(q3):
+    global emptyFlag
+    if (q3.size == 0):
+        print("q3 is now empty")
+        emptyFlag[3] = 1
+        return
+
     global globalTime
     quantum_slice = 8
     print("The global time is", globalTime)
     
     # Execute the loop at least once
     while (quantum_slice != 0):
-        initial_size = q0.size
-        initial_front = q0.front
+        if (q3.size == 0):
+            break
+        
+        initial_size = q3.size
+        initial_front = q3.front
         for i in range(initial_size):
 
             if (quantum_slice == 0):
                 break
 
-            if q0.queue_array[i + initial_front].b_t != 0 and q0.queue_array[i + initial_front].b_t <= quantum_slice:
-                quantum_slice -= q0.queue_array[i + initial_front].b_t
-                globalTime += q0.queue_array[i + initial_front].b_t
-                q0.queue_array[i + initial_front].b_t = 0
-                print("Process", q0.queue_array[i + initial_front].p_id, "exited at time", globalTime)
+            if q3.queue_array[i + initial_front].b_t != 0 and q3.queue_array[i + initial_front].b_t <= quantum_slice:
+                quantum_slice -= q3.queue_array[i + initial_front].b_t
+                globalTime += q3.queue_array[i + initial_front].b_t
+                q3.queue_array[i + initial_front].b_t = 0
+                print("Process", q3.queue_array[i + initial_front].p_id, "exited at time", globalTime)
 
-                dequeue(q0)
-            elif q0.queue_array[i + initial_front].b_t != 0 and q0.queue_array[i + initial_front].b_t > quantum_slice:
-                q0.queue_array[i + initial_front].b_t -= quantum_slice
+                dequeue(q3)
+            elif q3.queue_array[i + initial_front].b_t != 0 and q3.queue_array[i + initial_front].b_t > quantum_slice:
+                q3.queue_array[i + initial_front].b_t -= quantum_slice
                 globalTime += quantum_slice
                 quantum_slice = 0
 
 
 def roundrobin(q0):
+    if (q0.size == 0):
+        print("q0 is now empty")
+        emptyFlag[0] = 1
+        return
+    
     global globalTime
     quantum_slice = 8
     robin_slice = 4
@@ -135,10 +159,13 @@ def roundrobin(q0):
     while (quantum_slice != 0):
         initial_size = q0.size
         initial_front = q0.front
+
+        if (q0.size == 0):
+            break
         
         for i in range(initial_size):
 
-            if (quantum_slice == 0):
+            if (quantum_slice == 0 or q0.size == 0):
                 break
 
             if (quantum_slice != 0 and robin_slice == 0):
@@ -147,56 +174,101 @@ def roundrobin(q0):
             diff = abs(quantum_slice - robin_slice)
 
             if (quantum_slice >= robin_slice):
-                if q1.queue_array[i + initial_front].b_t != 0 and q1.queue_array[i + initial_front].b_t <= robin_slice:
-                    quantum_slice -= q1.queue_array[i + initial_front].b_t
-                    # robin_slice -= q1.queue_array[i + initial_front].b_t
+                if q0.queue_array[i + initial_front].b_t != 0 and q0.queue_array[i + initial_front].b_t <= robin_slice:
+                    quantum_slice -= q0.queue_array[i + initial_front].b_t
+                    # robin_slice -= q0.queue_array[i + initial_front].b_t
                     robin_slice = 4 # if the jobs done we can simply reset the robin_slice
-                    globalTime += q1.queue_array[i + initial_front].b_t
-                    q1.queue_array[i + initial_front].b_t = 0
-                    print("Process", q1.queue_array[i + initial_front].p_id, "exited at time", globalTime)
+                    globalTime += q0.queue_array[i + initial_front].b_t
+                    q0.queue_array[i + initial_front].b_t = 0
+                    print("Process", q0.queue_array[i + initial_front].p_id, "exited at time", globalTime)
 
-                    dequeue(q1)
+                    dequeue(q0)
 
-                elif q1.queue_array[i + initial_front].b_t != 0 and q1.queue_array[i + initial_front].b_t > robin_slice:
-                    q1.queue_array[i + initial_front].b_t -= robin_slice
+                elif q0.queue_array[i + initial_front].b_t != 0 and q0.queue_array[i + initial_front].b_t > robin_slice:
+                    q0.queue_array[i + initial_front].b_t -= robin_slice
                     globalTime += robin_slice
                     quantum_slice -= robin_slice
                     robin_slice = 0
-                    robin_dequeue(q1)
+                    robin_dequeue(q0)
             
             elif (robin_slice > quantum_slice):
-                if q1.queue_array[i + initial_front].b_t != 0 and q1.queue_array[i + initial_front].b_t <= quantum_slice:
-                    quantum_slice -= q1.queue_array[i + initial_front].b_t
-                    robin_slice -= q1.queue_array[i + initial_front].b_t
-                    globalTime += q1.queue_array[i + initial_front].b_t
-                    q1.queue_array[i + initial_front].b_t = 0
-                    print("Process", q1.queue_array[i + initial_front].p_id, "exited at time", globalTime)
+                if q0.queue_array[i + initial_front].b_t != 0 and q0.queue_array[i + initial_front].b_t <= quantum_slice:
+                    quantum_slice -= q0.queue_array[i + initial_front].b_t
+                    robin_slice -= q0.queue_array[i + initial_front].b_t
+                    globalTime += q0.queue_array[i + initial_front].b_t
+                    q0.queue_array[i + initial_front].b_t = 0
+                    print("Process", q0.queue_array[i + initial_front].p_id, "exited at time", globalTime)
 
-                    dequeue(q1)
-                elif q1.queue_array[i + initial_front].b_t != 0 and q1.queue_array[i + initial_front].b_t > quantum_slice:
-                    q1.queue_array[i + initial_front].b_t -= quantum_slice
+                    dequeue(q0)
+                elif q0.queue_array[i + initial_front].b_t != 0 and q0.queue_array[i + initial_front].b_t > quantum_slice:
+                    q0.queue_array[i + initial_front].b_t -= quantum_slice
                     # Dont need to account for robin_slice from this point 
                     globalTime += quantum_slice
                     quantum_slice = 0
-                    # enqueue(q1, dequeue(q1))
+                    # enqueue(q0, dequeue(q1))
 
             # we need 2 conditions, we need the absolute value of rr slice and quantum slice
 
 
-def findShortestJobIndex(q2):
-    min = q2.front
-    for j in range(q2.size):
-        if (q2.queue_array[q2.front + j].b_t < q2.queue_array[min].b_t):
-            min = q2.front + j
-    return min
+def sjf_1(q1):
 
-def sjf(q2):
+    if (q1.size == 0):
+        print("q1 is now empty")
+        emptyFlag[1] = 1
+        return
 
     global globalTime
-    quantum_slice = 4
+    quantum_slice = 8
     print("The global time is", globalTime)
 
     while (quantum_slice != 0):
+
+        if (q1.size == 0):
+            break
+        initial_size = q1.size
+        initial_front = q1.front
+
+        set_min = q1.queue_array[q1.front].b_t
+        set_index = 0
+        for k in range(q1.front, q1.front + q1.size):
+            if (q1.queue_array[k].b_t <= set_min):
+                set_min = q1.queue_array[k].b_t
+                set_index = k
+
+        if (initial_front == set_index):    
+            if (quantum_slice == 0 or q1.size == 0):
+                break
+
+            if q1.queue_array[set_index].b_t != 0 and q1.queue_array[set_index].b_t <= quantum_slice:
+                quantum_slice -= q1.queue_array[set_index].b_t
+                globalTime += q1.queue_array[set_index].b_t
+                q1.queue_array[set_index].b_t = 0
+                print("Process", q1.queue_array[set_index].p_id, "exited at time", globalTime)
+
+                dequeue(q1)
+            elif q1.queue_array[set_index].b_t != 0 and q1.queue_array[set_index].b_t > quantum_slice:
+                q1.queue_array[set_index].b_t -= quantum_slice
+                globalTime += quantum_slice
+                quantum_slice = 0
+
+        else:
+            robin_dequeue(q1)
+
+def sjf_2(q2):
+
+    if (q2.size == 0):
+        print("q2 is now empty")
+        emptyFlag[2] = 1
+        return
+    
+    global globalTime
+    quantum_slice = 8
+    print("The global time is", globalTime)
+
+    while (quantum_slice != 0):
+
+        if (q2.size == 0):
+            break
         initial_size = q2.size
         initial_front = q2.front
 
@@ -207,7 +279,7 @@ def sjf(q2):
                 set_min = q2.queue_array[k].b_t
                 set_index = k
 
-        if (initial_front == set_index):    
+        if (initial_front == set_index or q2.size == 0):    
             if (quantum_slice == 0):
                 break
 
@@ -227,27 +299,38 @@ def sjf(q2):
             robin_dequeue(q2)
 
 
-    
-
 def schedule():
     global globalTime
-    no_queues = 2
+    global emptyFlag
+    no_queues = 4
     tick = 0
-    quantum_slice = 4
+    quantum_slice = 8
     switch_count = 0
 
-    while (globalTime < 50):
-        if (switch_count == 0):
-            # fcfs(q0)
-            sjf(q2)
-        elif (switch_count == 1):
-            globalTime += quantum_slice
-        switch_count = (switch_count + 1) % 2
+    while (globalTime < 200):
+
+        if (emptyFlag[0] == 1 and emptyFlag[1] == 1 and emptyFlag[2] == 1 and emptyFlag[3] == 1):
+            print("SYS HALT")
+            break
+
+        elif (switch_count == 0 and emptyFlag[0] != 1):
+            roundrobin(q0)
+            
+        elif (switch_count == 1 and emptyFlag[1] != 1):
+            sjf_1(q1)
+
+        elif (switch_count == 2 and emptyFlag[2] != 1):
+            sjf_2(q2)
+
+        elif (switch_count == 3 and emptyFlag[3] != 1):
+            fcfs(q3)
+        switch_count = (switch_count + 1) % no_queues
 
 
 
-q0, q1, q2 = input_processes()
+q0, q1, q2, q3 = input_processes()
 print_queue(q0)
 print_queue(q1)
 print_queue(q2)
+print_queue(q3)
 schedule()
